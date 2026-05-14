@@ -310,14 +310,12 @@ def simulate_inference(img: np.ndarray) -> dict:
     pred_class = int(np.argmax(probs))
     confidence = float(probs[pred_class])
 
-    # Simulate Grad-CAM heatmap
+    # Simulate Grad-CAM heatmap (vectorized with NumPy — no slow Python loops)
     h, w = img.shape[:2]
-    heatmap = np.zeros((h, w), dtype=np.float32)
     cx, cy = np.random.randint(w//4, 3*w//4), np.random.randint(h//4, 3*h//4)
-    for i in range(h):
-        for j in range(w):
-            dist = np.sqrt((i - cy)**2 + (j - cx)**2)
-            heatmap[i, j] = np.exp(-dist**2 / (2 * (min(h,w)//4)**2))
+    yy, xx = np.mgrid[0:h, 0:w].astype(np.float32)
+    sigma = (min(h, w) // 4) ** 2
+    heatmap = np.exp(-((yy - cy)**2 + (xx - cx)**2) / (2 * sigma))
     heatmap = (heatmap - heatmap.min()) / (heatmap.max() - heatmap.min() + 1e-8)
 
     gradcam_overlay = overlay_gradcam(img, heatmap, alpha=0.45)
